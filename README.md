@@ -7,6 +7,7 @@ Contributors:
 
   - Paige Hoffman  
       Contact: paige.hoffman@att.net
+
 # How to Use
 # How to Build, Install/Uninstall
 # GIF
