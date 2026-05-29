@@ -6,7 +6,7 @@ Contributors:
       Contact: arelicelestin@gmail.com
 
   - Paige Hoffman  
-      Contact:
+      Contact: paige.hoffman@att.net
 # How to Use
 # How to Build, Install/Uninstall
 # GIF
