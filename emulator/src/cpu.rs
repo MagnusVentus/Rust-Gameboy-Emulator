@@ -1,6 +1,15 @@
+//_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
+//------------------C P U-------------------
+//_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
+
+struct CPU {
+    registers: Registers,
+    pc: u16,
+    bus: MemoryBus,
+}
 
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
-//------------R E G I S T E R S--------------
+//------------R E G I S T E R S-------------
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
 
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
@@ -78,10 +87,14 @@ impl Registers {
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
 
 enum Instruction {
-    ADD(ArithmeticTarget),
+    ADD(R8Target),
+    SLA(R8Target),
+    SWAP(R8Target),
+    SRA( )
+
 }
 
-enum ArithmeticTarget {
+enum R8Target {
     A, B, C, D, E, H, L,
 }
 
@@ -90,7 +103,7 @@ impl CPU {
         match instruction {
             Instruction::ADD(target) => {
                 match target {
-                    ArithmeticTarget::C => {
+                     R8Target::C => {
                         let value = self.registers.c;
                         let new_value = self.add(value);
                         self.registers.a = new_value;
@@ -98,15 +111,116 @@ impl CPU {
                     _ => { /* TODO: support more targets */}
                 }
             }
+            Instruction::SRA(target) => {
+                match target {
+                    R8Target::A => {
+                        self.registers.a = self.sra(self.resgisters.a);
+                    }
+                    R8Target::B => {
+                        self.registers.b = self.sra(self.resgisters.b);
+                    }
+                    R8Target::C => {
+                        self.registers.c = self.sra(self.resgisters.c);
+                    }
+                    R8Target::D => {
+                        self.registers.d = self.sra(self.resgisters.d);
+                    }
+                    R8Target::E => {
+                        self.registers.e = self.sra(self.resgisters.e);
+                    }
+                    R8Target::L => {
+                        self.registers.l = self.sra(self.resgisters.l);
+                    }
+                }
+            }
+            Instruction::SLA(target) => {
+                match target {
+                    R8Target::A => {
+                        self.registers.a = self.sla(self.registers.a);
+                    }
+                    R8Target::B => {
+                        self.registers.b = self.sla(self.registers.b);
+                    }
+                    R8Target::C => {
+                        self.registers.c = self.sla(self.registers.c);
+                    }
+                    R8Target::D => {
+                        self.registers.d = self.sla(self.registers.d);
+                    }
+                    R8Target::E => {
+                        self.registers.e = self.sla(self.registers.e);
+                    }
+                    R8Target::L => {
+                        self.registers.l = self.sla(self.registers.l);
+                    }
+                }
+            }
+            Instruction::SWAP(target) => {
+                match target {
+                    R8Target::A => {
+                        self.registers.a = self.swap(self.registers.a);
+                    }
+                    R8Target::B => {
+                        self.registers.b = self.swap(self.registers.b); 
+                    }
+                    R8Target::C => {
+                        self.registers.c = self.swap(self.registers.c);
+                    }
+                    R8Target::D => {
+                        self.registers.d = self.swap(self.registers.d);
+                    }
+                    R8Target::E => {
+                        self.registers.d = self.swap(self.registers.h);
+                    }
+                    R8Target::L => {
+                        self.registers.l = self.swap(self.registers.l);
+                    }
+
             _ => { /* TODO: support more instructions */}
+
         }
     }
     fn add(&mut self, value: u8) -> u8 {
         let (new_value, did_overflow) = self.registers.a.overflowing_add(value);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
-        self.registers.f.carry = did_overflow;
         self.registers.f.half_carry = (self.registers.a & 0xF) + (value & 0xF) > 0xF;
+        self.registers.f.carry = did_overflow;
+        new_value
+    }
+
+    fn swap(&mut self, value: u8) -> u8{
+        let upper = (value & 0xF0) >> 4;
+        let new_value = value << 4;
+        new_value = new_value | upper;
+        //update flags
+        self.registers.f.zero = self.registers.value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = false;
+        new_value
+    }
+
+    fn sla(&mut self, value: u8) {
+        let carry = value & 0x80;
+        let new_value = value << 1;
+        //update flags
+        self.registers.f.zero = self.registers.value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 1;
+        new_value
+    }
+
+    fn sra(&mut self, value: u8) {
+        let carry = value & 0x01;
+        let lmb = value & 0x80;
+        let new_value = lmb | (value >> 1);
+        //update flags
+        self.registers.f.zero = self.registers.value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 1;
         new_value
     }
 }
