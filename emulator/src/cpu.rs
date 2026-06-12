@@ -5,7 +5,8 @@
 struct CPU {
     registers: Registers,
     pc: u16,
-    bus: MemoryBus,
+    //NOT IMPLEMENTED (rust will compain)
+    //bus: MemoryBus,
 }
 
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
@@ -13,11 +14,13 @@ struct CPU {
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
 
 const ZERO_FLAG_BYTE_POSITION: u8 = 7;
-const SUBTRACT_FLAG_BYTE_POSITION: u8 = 8;
+const SUBTRACT_FLAG_BYTE_POSITION: u8 = 6;
 const HALF_CARRY_FLAG_BYTE_POSITION: u8 = 5;
 const CARRY_FLAG_BYTE_POSITION: u8 = 4;
 
 //special single bit flag registers for register f
+//implements thee copy trait so that shared reference FlagsRegister doesn't throw an error and a copy is automatically made
+#[derive(Clone, Copy)]
 struct FlagsRegister {
     zero: bool,
     subtract: bool,
@@ -36,8 +39,8 @@ struct Registers {
     l: u8,
 }
 
-//from separate flag registers to one 8bit register
-impl std::convert::From<FlagRegisters> for u8 {
+//from a flag registers struct type to u8 type
+impl std::convert::From<FlagsRegister> for u8 {
     fn from(flag: FlagsRegister) -> u8 {
         (if flag.zero       { 1 } else { 0 }) << ZERO_FLAG_BYTE_POSITION |
         (if flag.subtract   { 1 } else { 0 }) << SUBTRACT_FLAG_BYTE_POSITION |
@@ -46,10 +49,10 @@ impl std::convert::From<FlagRegisters> for u8 {
     }
 }
 
-//from an 8bit register to separate flag registers 
+//from a u8 type to flag registers struct type
 impl std::convert::From<u8> for FlagsRegister {
     fn from(byte: u8) -> Self {
-        let zero = ((byte >> ZERO_FLAG_BYTE_POSITION & 0b1) != 0;
+        let zero = ((byte >> ZERO_FLAG_BYTE_POSITION) & 0b1) != 0;
         let subtract = ((byte >> SUBTRACT_FLAG_BYTE_POSITION) & 0b1) != 0;
         let half_carry = ((byte >> HALF_CARRY_FLAG_BYTE_POSITION) & 0b1) != 0;
         let carry = ((byte >> CARRY_FLAG_BYTE_POSITION) & 0b1) != 0;
@@ -66,17 +69,17 @@ impl std::convert::From<u8> for FlagsRegister {
 //TODO add the other register operations: de and hl
 impl Registers {
     fn get_af(&self) -> u16 {
-        (self.a as u16) << 8 | self.f as u16
+        ((self.a as u16) << 8) | (u8::from(self.f) as u16)
     }
-    fn set_af(&self) -> u16 {
+    fn set_af(&mut self, value: u16) {
         self.a = ((value & 0xFF00) >> 8) as u8;
-        self.f = (value & 0xFF) as u8;
+        self.f = FlagsRegister::from((value & 0xFF) as u8);
     }
 
     fn get_bc(&self) -> u16 {
-        (self.b as u16) << 8 | self.c as u16
+        ((self.b as u16) << 8) | (self.c as u16)
     }
-    fn set_bc(&self) -> u16 {
+    fn set_bc(&mut self, value: u16) {
         self.b = ((value & 0xFF00) >> 8) as u8;
         self.c = (value & 0xFF) as u8;
     }
@@ -90,7 +93,8 @@ enum Instruction {
     ADD(R8Target),
     SLA(R8Target),
     SWAP(R8Target),
-    SRA( )
+    SRA(R8Target),
+    RLC(R8Target),
 
 }
 
@@ -111,25 +115,53 @@ impl CPU {
                     _ => { /* TODO: support more targets */}
                 }
             }
+            Instruction::RLC(target) => {
+                match target {
+                    R8Target::A => {
+                        self.registers.a = self.rlc(self.registers.a);
+                    }
+                    R8Target::B => {
+                        self.registers.b = self.rlc(self.registers.b);
+                    }
+                    R8Target::C => {
+                        self.registers.c = self.rlc(self.registers.c);
+                    }
+                    R8Target::D => {
+                        self.registers.d = self.rlc(self.registers.d);
+                    }
+                    R8Target::E => {
+                        self.registers.e = self.rlc(self.registers.e);
+                    }
+                    R8Target::H => {
+                        self.registers.h = self.rlc(self.registers.h);
+                    }
+                    R8Target::L => {
+                        self.registers.l = self.rlc(self.registers.l);
+                    }
+                }
+            }
             Instruction::SRA(target) => {
                 match target {
                     R8Target::A => {
-                        self.registers.a = self.sra(self.resgisters.a);
+                        self.registers.a = self.sra(self.registers.a);
                     }
                     R8Target::B => {
-                        self.registers.b = self.sra(self.resgisters.b);
+                        self.registers.b = self.sra(self.registers.b);
                     }
                     R8Target::C => {
-                        self.registers.c = self.sra(self.resgisters.c);
+                        self.registers.c = self.sra(self.registers.c);
                     }
                     R8Target::D => {
-                        self.registers.d = self.sra(self.resgisters.d);
+                        self.registers.d = self.sra(self.registers.d);
                     }
                     R8Target::E => {
-                        self.registers.e = self.sra(self.resgisters.e);
+                        self.registers.e = self.sra(self.registers.e);
+                    }
+                    R8Target::H => {
+                        self.registers.h = self.sra(self.registers.h);
                     }
                     R8Target::L => {
-                        self.registers.l = self.sra(self.resgisters.l);
+                        self.registers.l = self.sra(self.registers.l);
                     }
                 }
             }
@@ -149,6 +181,9 @@ impl CPU {
                     }
                     R8Target::E => {
                         self.registers.e = self.sla(self.registers.e);
+                    }
+                    R8Target::H => {
+                        self.registers.h = self.sla(self.registers.h);
                     }
                     R8Target::L => {
                         self.registers.l = self.sla(self.registers.l);
@@ -170,14 +205,18 @@ impl CPU {
                         self.registers.d = self.swap(self.registers.d);
                     }
                     R8Target::E => {
-                        self.registers.d = self.swap(self.registers.h);
+                        self.registers.e = self.swap(self.registers.e);
+                    }
+                    R8Target::H => { 
+                        self.registers.h = self.swap(self.registers.h);
                     }
                     R8Target::L => {
                         self.registers.l = self.swap(self.registers.l);
                     }
 
             _ => { /* TODO: support more instructions */}
-
+                }
+            }
         }
     }
     fn add(&mut self, value: u8) -> u8 {
@@ -191,33 +230,43 @@ impl CPU {
 
     fn swap(&mut self, value: u8) -> u8{
         let upper = (value & 0xF0) >> 4;
-        let new_value = value << 4;
-        new_value = new_value | upper;
+        let new_value = (value << 4) | upper;
         //update flags
-        self.registers.f.zero = self.registers.value == 0;
+        self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
         self.registers.f.carry = false;
         new_value
     }
 
-    fn sla(&mut self, value: u8) {
+    fn sla(&mut self, value: u8) -> u8{
         let carry = value & 0x80;
         let new_value = value << 1;
         //update flags
-        self.registers.f.zero = self.registers.value == 0;
+        self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
         self.registers.f.carry = carry == 1;
         new_value
     }
 
-    fn sra(&mut self, value: u8) {
+    fn sra(&mut self, value: u8) -> u8{
         let carry = value & 0x01;
         let lmb = value & 0x80;
         let new_value = lmb | (value >> 1);
         //update flags
-        self.registers.f.zero = self.registers.value == 0;
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 1;
+        new_value
+    }
+
+    fn rlc(&mut self, value: u8) -> u8{
+        let carry = value & 0x80;
+        let new_value = (value << 1) | carry;
+        //update flags
+        self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
         self.registers.f.carry = carry == 1;
