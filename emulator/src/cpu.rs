@@ -272,6 +272,127 @@ impl CPU {
         self.registers.f.carry = carry == 1;
         new_value
     }
+
+    fn rrc(&mut self, value: u8) -> u8{
+        let carry = value & 0x01;
+        let new_value = (value >> 1) | carry;
+        //update flags
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 1;
+        new_value
+    }
+
+    fn rl(&mut self, value: u8) -> u8{
+        let carry = value & 0x80;
+        let carry_flag: u8 = self.registers.f.carry as u8;
+        let new_value = (value << 1) | carry_flag;
+        //update flags
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 1;
+        new_value
+    }
+
+    fn rr(&mut self, value: u8) -> u8{
+        let carry = value & 0x01;
+        let carry_flag: u8 = (self.registers.f.carry as u8) << 7;
+        let new_value = (value >> 1) | carry_flag;
+        //update flags
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 1;
+        new_value
+    }
+
+    fn srl(&mut self, value: u8) -> u8 {
+        let carry = value & 0x01;
+        let new_value = value >> 1;
+        //update flags
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 1;
+        new_value
+    }
+
+    fn set(&mut self, value: u8, bit: u8) -> u8{
+        if bit > 7 {
+            panic!("bit placement is out of bounds (high). CPU FN SET")
+        }
+        else if bit < 0 {
+            panic!("bit placement is out of bounds (low). CPU FN SET")
+        }
+        let new_value = value | (0x01 << bit);
+        //flags remain unaffected
+        new_value
+    }
+
+    fn res(&mut self, value: u8, bit: u8) -> u8{
+        if bit > 7 {
+            panic!("bit placement is out of bounds (high). CPU FN RES")
+        } 
+        else if bit < 0 {
+            panic!("bit placement is out of counds (low). CPU FN RES")
+        }
+        let mut mask = 0xFE;
+        for _i in 1.. bit {
+            mask = (mask << 1) | 0x01;
+        }
+        let new_value = value & mask;
+        new_value
+    }
+
+    fn bit(&mut self, value: u8, bit: u8) {
+        if bit > 7 {
+            panic!("bit to check is out of bounds (high). CPU FN BIT")
+        }
+        else if bit < 0 {
+            panic!("bit to check is out of bounds (low). CPU FN BIT")
+        }
+        let mask = 0x01 << bit;
+        let result = value & mask;
+        //update flags
+        if result == mask {
+            self.registers.f.zero = false; 
+        }else {
+            self.registers.f.zero = true;
+        }
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = true;
+        //the carry flag is unaffected
+    }
+
+    fn cpl(&mut self) {
+        self.registers.a = !self.registers.a;
+        //update flags
+        //carry and zero flag are unaffected
+        self.registers.f.subtract = true;
+        self.registers.f.half_carry = false;
+    }
+
+    fn rlca(&mut self) {
+        let carry_copy = (self.registers.a & 0x80) >> 7;
+        self.registers.a = (self.registers.a << 1) | carry_copy;
+        //update flags
+        self.registers.f.zero = false;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry_copy == 1;
+    }
+
+    fn rrca(&mut self) {
+        let carry_copy = self.registers.a & 0x01;
+        self.registers.a = (self.registers.a >> 1) | (carry_copy << 7);
+        //update flags
+        self.registers.f.zero = false;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry_copy == 1;
+    }
 }
 
 
