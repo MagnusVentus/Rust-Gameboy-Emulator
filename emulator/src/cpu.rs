@@ -5,8 +5,26 @@
 struct CPU {
     registers: Registers,
     pc: u16,
-    //NOT IMPLEMENTED (rust will compain)
-    //bus: MemoryBus,
+    bus: MemoryBus,
+}
+//_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
+//-----------M E M O R Y - B U S------------
+//_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
+
+struct MemoryBus {
+    memory: [u8; 0xFFFF],
+}
+
+impl MemoryBus {
+    fn read_byte(&self, address: u16) -> u8 {
+        self.memory[address as usize]
+    }
+
+    fn write_byte(&mut self, address: u16, value: u8) {
+        self.memory[address as usize] = value;
+    }
+
+
 }
 
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
@@ -90,132 +108,599 @@ impl Registers {
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
 
 enum Instruction {
-    ADD(R8Target),
-    SLA(R8Target),
-    SWAP(R8Target),
-    SRA(R8Target),
-    RLC(R8Target),
+    ADD(ArithmeticTarget),
+    SLA(DeRefR8Target),
+    SWAP(DeRefR8Target),
+    SRA(DeRefR8Target),
+    RLC(DeRefR8Target),
+    RRC(DeRefR8Target),
+    RL(DeRefR8Target),
+    RR(DeRefR8Target),
+    SRL(DeRefR8Target),
+    SET(DeRefR8Target),
+    RES(DeRefR8Target),
+    BIT(DeRefR8Target),
+    CPL,
+    RLCA,
+    RRCA,
 
 }
 
-enum R8Target {
-    A, B, C, D, E, H, L,
+impl Instruction {
+    fn from_byte(byte: u8) -> Option<Instruction> {
+        match byte{
+            0x00 => todo!(),
+            0x01 => todo!(),
+            0x02 => todo!(),
+            _ => todo!(),
+        }       
+    }
+}
+
+enum ArithmeticTarget {
+    A, B, C, D, E, H, L, HL, N8,
+}
+
+enum DeRefR8Target {
+    A(u8), B(u8), C(u8), D(u8), E(u8), H(u8), L(u8), HL(u8),
 }
 
 impl CPU {
-    fn execute(&mut self, instruction: Instruction) {
+    fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
             Instruction::ADD(target) => {
                 match target {
-                     R8Target::C => {
+                     ArithmeticTarget::C => {
                         let value = self.registers.c;
                         let new_value = self.add(value);
                         self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
                     }
-                    _ => { /* TODO: support more targets */}
+                    _ => {
+                        self.pc.wrapping_add(1)
+                        /* TODO: support more targets */
+                    }
+                }
+            }
+            Instruction::RRCA => {
+                self.rrca();
+                self.pc.wrapping_add(1)
+            }
+            Instruction::RLCA => {
+                self.rlca();
+                self.pc.wrapping_add(1)
+            }
+            Instruction::CPL => {
+                self.cpl();
+                self.pc.wrapping_add(1)
+            }
+            Instruction::BIT(target) => {
+                match target{
+                    //fix
+                    DeRefR8Target::A(bit) => {
+                        self.bit(self.registers.a, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::B(bit) => {
+                        self.bit(self.registers.b, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::C(bit) => {
+                        self.bit(self.registers.c, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::D(bit) => {
+                        self.bit(self.registers.d, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::E(bit) => {
+                        self.bit(self.registers.e, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::H(bit) => {
+                        self.bit(self.registers.h, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::L(bit) => {
+                        self.bit(self.registers.l, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(bit) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        if bit > 7 {
+                            panic!("bit to check is out of bounds (high). CPU FN BIT")
+                        }
+                        else if bit < 0 {
+                            panic!("bit to check is out of bounds (low). CPU FN BIT")
+                        }
+                        let mask = 0x01 << bit;
+                        let result = value & mask;
+                        //update flags
+                        if result == mask {
+                            self.registers.f.zero = false; 
+                        }else {
+                            self.registers.f.zero = true;
+                        }
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = true;
+                        //the carry flag is unaffected
+                        self.pc.wrapping_add(1)
+                    }
+                }
+            }
+            Instruction::RES(target) => {
+                match target {
+                    //fix
+                    DeRefR8Target::A(bit) => {
+                        self.registers.a = self.res(self.registers.a, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::B(bit) => {
+                        self.registers.b = self.res(self.registers.b, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::C(bit) => {
+                        self.registers.c = self.res(self.registers.c, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::D(bit) => {
+                        self.registers.d = self.res(self.registers.d, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::E(bit) => {
+                        self.registers.e = self.res(self.registers.e, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::H(bit) => {
+                        self.registers.h = self.res(self.registers.h, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::L(bit) => {
+                        self.registers.l = self.res(self.registers.l, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(bit) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        if bit > 7 {
+                            panic!("bit placement is out of bounds (high). CPU FN RES")
+                        } 
+                        else if bit < 0 {
+                            panic!("bit placement is out of counds (low). CPU FN RES")
+                        }
+                        let mut mask = 0xFE;
+                        for _i in 1.. bit {
+                            mask = (mask << 1) | 0x01;
+                        }
+                        let new_value = value & mask;
+                        //flags remain unaffected
+                        self.bus.write_byte(HL, new_value);
+                        self.pc.wrapping_add(1)
+                    }
+                }
+            }
+            Instruction::SET(target) => {
+                match target {
+                    //fix
+                    DeRefR8Target::A(bit) => {
+                        self.registers.a = self.set(self.registers.a, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::B(bit) => {
+                        self.registers.b = self.set(self.registers.b, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::C(bit) => {
+                        self.registers.c = self.set(self.registers.c, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::D(bit) => {
+                        self.registers.d = self.set(self.registers.d, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::E(bit) => {
+                        self.registers.e = self.set(self.registers.e, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::H(bit) => {
+                        self.registers.h = self.set(self.registers.h, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::L(bit) => {
+                        self.registers.l = self.set(self.registers.l, bit);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(bit) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        if bit > 7 {
+                            panic!("bit placement is out of bounds (high). CPU FN SET")
+                        }
+                        else if bit < 0 {
+                            panic!("bit placement is out of bounds (low). CPU FN SET")
+                        }
+                        let new_value = value | (0x01 << bit);
+                        //flags remain unaffected
+                        self.bus.write_byte(HL, new_value);
+                        self.pc.wrapping_add(1)
+                    }
+                }
+            }
+            Instruction::SRL(target) => {
+                match target {
+                    //fix
+                    DeRefR8Target::A(_) => {
+                        self.registers.a = self.srl(self.registers.a);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::B(_) => {
+                        self.registers.b = self.srl(self.registers.b);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::C(_) => {
+                        self.registers.c = self.srl(self.registers.c);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::D(_) => {
+                        self.registers.d = self.srl(self.registers.d);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::E(_) => {
+                        self.registers.e = self.srl(self.registers.e);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::H(_) => {
+                        self.registers.h = self.srl(self.registers.h);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::L(_) => {
+                        self.registers.l = self.srl(self.registers.l);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(_) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        let carry = value & 0x01;
+                        let new_value = value >> 1;
+                        //update flags
+                        self.registers.f.zero = new_value == 0;
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = false;
+                        self.registers.f.carry = carry == 1;
+                        self.bus.write_byte(HL, new_value);   
+                        self.pc.wrapping_add(1)
+                    }
+                }
+            }
+            Instruction::RR(target) => {
+                match target {
+                    //fix
+                    DeRefR8Target::A(_) => {
+                        self.registers.a = self.rr(self.registers.a);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::B(_) => {
+                        self.registers.b = self.rr(self.registers.b);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::C(_) => {
+                        self.registers.c = self.rr(self.registers.c);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::D(_) => {
+                        self.registers.d = self.rr(self.registers.d);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::E(_) => {
+                        self.registers.e = self.rr(self.registers.e);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::H(_) => {
+                        self.registers.h = self.rr(self.registers.h);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::L(_) => {
+                        self.registers.l = self.rr(self.registers.l);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(_) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        let carry = value & 0x01;
+                        let carry_flag: u8 = (self.registers.f.carry as u8) << 7;
+                        let new_value = (value >> 1) | carry_flag;
+                        //update flags
+                        self.registers.f.zero = new_value == 0;
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = false;
+                        self.registers.f.carry = carry == 1;
+                        self.bus.write_byte(HL, new_value);                
+                        self.pc.wrapping_add(1)
+                    }    
+                }
+            }
+            Instruction::RL(target) => {
+                match target {
+                    //fix
+                    DeRefR8Target::A(_) => {
+                        self.registers.a = self.rl(self.registers.a);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::B(_) => {
+                        self.registers.b = self.rl(self.registers.b);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::C(_) => {
+                        self.registers.c = self.rl(self.registers.c);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::D(_) => {
+                        self.registers.d = self.rl(self.registers.d);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::E(_) => {
+                        self.registers.e = self.rl(self.registers.e);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::H(_) => {
+                        self.registers.h = self.rl(self.registers.h);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::L(_) => {
+                        self.registers.l = self.rl(self.registers.l);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(_) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        let carry = value & 0x80;
+                        let carry_flag: u8 = self.registers.f.carry as u8;
+                        let new_value = (value << 1) | carry_flag;
+                        //update flags
+                        self.registers.f.zero = new_value == 0;
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = false;
+                        self.registers.f.carry = carry == 1;
+                        self.bus.write_byte(HL, new_value);
+                        self.pc.wrapping_add(1)
+                    }
+                }
+            }
+            Instruction::RRC(target) => {
+                match target {
+                    //fix
+                     DeRefR8Target::A(_) => {
+                        self.registers.a = self.rrc(self.registers.a);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::B(_) =>  {
+                        self.registers.b = self.rrc(self.registers.b);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::C(_) => {
+                        self.registers.c = self.rrc(self.registers.c);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::D(_) => {
+                        self.registers.d = self.rrc(self.registers.d);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::E(_) => {
+                        self.registers.e = self.rrc(self.registers.e);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::H(_) => {
+                        self.registers.h = self.rrc(self.registers.h);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::L(_) => {
+                        self.registers.l = self.rrc(self.registers.l);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(_) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        let carry = value & 0x01;
+                        let new_value = (value >> 1) | carry;
+                        //update flags
+                        self.registers.f.zero = new_value == 0;
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = false;
+                        self.registers.f.carry = carry == 1;
+                        self.bus.write_byte(HL, new_value);                
+                        self.pc.wrapping_add(1)
+                    }
                 }
             }
             Instruction::RLC(target) => {
                 match target {
-                    R8Target::A => {
+                    DeRefR8Target::A(_) => {
                         self.registers.a = self.rlc(self.registers.a);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::B => {
+                    DeRefR8Target::B(_) => {
                         self.registers.b = self.rlc(self.registers.b);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::C => {
+                    DeRefR8Target::C(_) => {
                         self.registers.c = self.rlc(self.registers.c);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::D => {
+                    DeRefR8Target::D(_) => {
                         self.registers.d = self.rlc(self.registers.d);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::E => {
+                    DeRefR8Target::E(_) => {
                         self.registers.e = self.rlc(self.registers.e);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::H => {
+                    DeRefR8Target::H(_) => {
                         self.registers.h = self.rlc(self.registers.h);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::L => {
+                    DeRefR8Target::L(_) => {
                         self.registers.l = self.rlc(self.registers.l);
+                        self.pc.wrapping_add(1)
                     }
+                    DeRefR8Target::HL(_) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        let carry = value & 0x80;
+                        let new_value = (value << 1) | carry;
+                        //update flags
+                        self.registers.f.zero = new_value == 0;
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = false;
+                        self.registers.f.carry = carry == 1;
+                        self.bus.write_byte(HL, new_value);               
+                        self.pc.wrapping_add(1)
+                    }
+
+
                 }
             }
             Instruction::SRA(target) => {
                 match target {
-                    R8Target::A => {
+                    DeRefR8Target::A(_) => {
                         self.registers.a = self.sra(self.registers.a);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::B => {
+                    DeRefR8Target::B(_) => {
                         self.registers.b = self.sra(self.registers.b);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::C => {
+                    DeRefR8Target::C(_) => {
                         self.registers.c = self.sra(self.registers.c);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::D => {
+                    DeRefR8Target::D(_) => {
                         self.registers.d = self.sra(self.registers.d);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::E => {
+                    DeRefR8Target::E(_) => {
                         self.registers.e = self.sra(self.registers.e);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::H => {
+                    DeRefR8Target::H(_) => {
                         self.registers.h = self.sra(self.registers.h);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::L => {
+                    DeRefR8Target::L(_) => {
                         self.registers.l = self.sra(self.registers.l);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(_) =>  {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        let carry = value & 0x01;
+                        let lmb = value & 0x80;
+                        let new_value = lmb | (value >> 1);
+                        //update flags
+                        self.registers.f.zero = new_value == 0;
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = false;
+                        self.registers.f.carry = carry == 1;
+                        self.bus.write_byte(HL, new_value);   
+                        self.pc.wrapping_add(1)
                     }
                 }
             }
             Instruction::SLA(target) => {
                 match target {
-                    R8Target::A => {
+                    DeRefR8Target::A(_) => {
                         self.registers.a = self.sla(self.registers.a);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::B => {
+                    DeRefR8Target::B(_) => {
                         self.registers.b = self.sla(self.registers.b);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::C => {
+                    DeRefR8Target::C(_) => {
                         self.registers.c = self.sla(self.registers.c);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::D => {
+                    DeRefR8Target::D(_) => {
                         self.registers.d = self.sla(self.registers.d);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::E => {
+                    DeRefR8Target::E(_) => {
                         self.registers.e = self.sla(self.registers.e);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::H => {
+                    DeRefR8Target::H(_) => {
                         self.registers.h = self.sla(self.registers.h);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::L => {
+                    DeRefR8Target::L(_) => {
                         self.registers.l = self.sla(self.registers.l);
+                        self.pc.wrapping_add(1)
+                    }
+                    DeRefR8Target::HL(_) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        let carry = value & 0x80;
+                        let new_value = value << 1;
+                        //update flags
+                        self.registers.f.zero = new_value == 0;
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = false;
+                        self.registers.f.carry = carry == 1;
+                        self.bus.write_byte(HL, new_value);
+                        self.pc.wrapping_add(1)
                     }
                 }
             }
             Instruction::SWAP(target) => {
                 match target {
-                    R8Target::A => {
+                    DeRefR8Target::A(_) => {
                         self.registers.a = self.swap(self.registers.a);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::B => {
+                    DeRefR8Target::B(_) => {
                         self.registers.b = self.swap(self.registers.b); 
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::C => {
+                    DeRefR8Target::C(_) => {
                         self.registers.c = self.swap(self.registers.c);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::D => {
+                    DeRefR8Target::D(_) => {
                         self.registers.d = self.swap(self.registers.d);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::E => {
+                    DeRefR8Target::E(_) => {
                         self.registers.e = self.swap(self.registers.e);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::H => { 
+                    DeRefR8Target::H(_) => { 
                         self.registers.h = self.swap(self.registers.h);
+                        self.pc.wrapping_add(1)
                     }
-                    R8Target::L => {
+                    DeRefR8Target::L(_) => {
                         self.registers.l = self.swap(self.registers.l);
+                        self.pc.wrapping_add(1)
                     }
-
-            _ => { /* TODO: support more instructions */}
+                    DeRefR8Target::HL(_) => {
+                        let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
+                        let value: u8 = self.bus.read_byte(HL);
+                        let upper = (value & 0xF0) >> 4;
+                        let new_value = (value << 4) | upper;
+                        //update flags
+                        self.registers.f.zero = new_value == 0;
+                        self.registers.f.subtract = false;
+                        self.registers.f.half_carry = false;
+                        self.registers.f.carry = false;
+                        self.bus.write_byte(HL, new_value);
+                        self.pc.wrapping_add(1)
+                    }
+            //don't mind this :> just uh... something that will go away once I'm sure it's not needed
+           // _ => { /* TODO: support more instructions */}
                 }
+            }
+            _ => {
+                /* TODO: support more instructions */
+                self.pc.wrapping_add(1)
             }
         }
     }
@@ -343,6 +828,7 @@ impl CPU {
             mask = (mask << 1) | 0x01;
         }
         let new_value = value & mask;
+        //flags remain unaffected
         new_value
     }
 
