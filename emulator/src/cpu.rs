@@ -725,31 +725,31 @@ impl CPU {
                     //fix
                     BitManTarget::A(bit) => {
                         self.bit(self.registers.a, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::B(bit) => {
                         self.bit(self.registers.b, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::C(bit) => {
                         self.bit(self.registers.c, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::D(bit) => {
                         self.bit(self.registers.d, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::E(bit) => {
                         self.bit(self.registers.e, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::H(bit) => {
                         self.bit(self.registers.h, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::L(bit) => {
                         self.bit(self.registers.l, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::HL(bit) => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -771,7 +771,7 @@ impl CPU {
                         self.registers.f.subtract = false;
                         self.registers.f.half_carry = true;
                         //the carry flag is unaffected
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -780,31 +780,31 @@ impl CPU {
                     //fix
                     BitManTarget::A(bit) => {
                         self.registers.a = self.res(self.registers.a, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::B(bit) => {
                         self.registers.b = self.res(self.registers.b, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::C(bit) => {
                         self.registers.c = self.res(self.registers.c, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::D(bit) => {
                         self.registers.d = self.res(self.registers.d, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::E(bit) => {
                         self.registers.e = self.res(self.registers.e, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::H(bit) => {
                         self.registers.h = self.res(self.registers.h, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::L(bit) => {
                         self.registers.l = self.res(self.registers.l, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::HL(bit) => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -822,7 +822,7 @@ impl CPU {
                         let new_value = value & mask;
                         //flags remain unaffected
                         self.bus.write_byte(HL, new_value);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -831,31 +831,31 @@ impl CPU {
                     //fix
                     BitManTarget::A(bit) => {
                         self.registers.a = self.set(self.registers.a, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::B(bit) => {
                         self.registers.b = self.set(self.registers.b, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::C(bit) => {
                         self.registers.c = self.set(self.registers.c, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::D(bit) => {
                         self.registers.d = self.set(self.registers.d, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::E(bit) => {
                         self.registers.e = self.set(self.registers.e, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::H(bit) => {
                         self.registers.h = self.set(self.registers.h, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::L(bit) => {
                         self.registers.l = self.set(self.registers.l, bit);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     BitManTarget::HL(bit) => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -869,7 +869,7 @@ impl CPU {
                         let new_value = value | (0x01 << bit);
                         //flags remain unaffected
                         self.bus.write_byte(HL, new_value);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -878,31 +878,31 @@ impl CPU {
                     //fix
                     DeRefR8Target::A => {
                         self.registers.a = self.srl(self.registers.a);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::B => {
                         self.registers.b = self.srl(self.registers.b);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::C => {
                         self.registers.c = self.srl(self.registers.c);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::D => {
                         self.registers.d = self.srl(self.registers.d);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::E => {
                         self.registers.e = self.srl(self.registers.e);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::H => {
                         self.registers.h = self.srl(self.registers.h);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::L => {
                         self.registers.l = self.srl(self.registers.l);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::HL => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -915,7 +915,7 @@ impl CPU {
                         self.registers.f.half_carry = false;
                         self.registers.f.carry = carry == 1;
                         self.bus.write_byte(HL, new_value);   
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -924,31 +924,31 @@ impl CPU {
                     //fix
                     DeRefR8Target::A => {
                         self.registers.a = self.rr(self.registers.a);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::B => {
                         self.registers.b = self.rr(self.registers.b);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::C => {
                         self.registers.c = self.rr(self.registers.c);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::D => {
                         self.registers.d = self.rr(self.registers.d);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::E => {
                         self.registers.e = self.rr(self.registers.e);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::H => {
                         self.registers.h = self.rr(self.registers.h);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::L => {
                         self.registers.l = self.rr(self.registers.l);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::HL => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -962,7 +962,7 @@ impl CPU {
                         self.registers.f.half_carry = false;
                         self.registers.f.carry = carry == 1;
                         self.bus.write_byte(HL, new_value);                
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }    
                 }
             }
@@ -971,31 +971,31 @@ impl CPU {
                     //fix
                     DeRefR8Target::A => {
                         self.registers.a = self.rl(self.registers.a);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::B => {
                         self.registers.b = self.rl(self.registers.b);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::C => {
                         self.registers.c = self.rl(self.registers.c);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::D => {
                         self.registers.d = self.rl(self.registers.d);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::E => {
                         self.registers.e = self.rl(self.registers.e);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::H => {
                         self.registers.h = self.rl(self.registers.h);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::L => {
                         self.registers.l = self.rl(self.registers.l);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::HL => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -1009,7 +1009,7 @@ impl CPU {
                         self.registers.f.half_carry = false;
                         self.registers.f.carry = carry == 1;
                         self.bus.write_byte(HL, new_value);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -1018,31 +1018,31 @@ impl CPU {
                     //fix
                      DeRefR8Target::A => {
                         self.registers.a = self.rrc(self.registers.a);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::B =>  {
                         self.registers.b = self.rrc(self.registers.b);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::C => {
                         self.registers.c = self.rrc(self.registers.c);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::D => {
                         self.registers.d = self.rrc(self.registers.d);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::E => {
                         self.registers.e = self.rrc(self.registers.e);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::H => {
                         self.registers.h = self.rrc(self.registers.h);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::L => {
                         self.registers.l = self.rrc(self.registers.l);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::HL => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -1055,7 +1055,7 @@ impl CPU {
                         self.registers.f.half_carry = false;
                         self.registers.f.carry = carry == 1;
                         self.bus.write_byte(HL, new_value);                
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -1063,31 +1063,31 @@ impl CPU {
                 match target {
                     DeRefR8Target::A => {
                         self.registers.a = self.rlc(self.registers.a);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::B => {
                         self.registers.b = self.rlc(self.registers.b);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::C => {
                         self.registers.c = self.rlc(self.registers.c);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::D => {
                         self.registers.d = self.rlc(self.registers.d);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::E => {
                         self.registers.e = self.rlc(self.registers.e);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::H => {
                         self.registers.h = self.rlc(self.registers.h);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::L => {
                         self.registers.l = self.rlc(self.registers.l);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::HL => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -1100,7 +1100,7 @@ impl CPU {
                         self.registers.f.half_carry = false;
                         self.registers.f.carry = carry == 1;
                         self.bus.write_byte(HL, new_value);               
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
 
 
@@ -1110,31 +1110,31 @@ impl CPU {
                 match target {
                     DeRefR8Target::A => {
                         self.registers.a = self.sra(self.registers.a);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::B => {
                         self.registers.b = self.sra(self.registers.b);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::C => {
                         self.registers.c = self.sra(self.registers.c);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::D => {
                         self.registers.d = self.sra(self.registers.d);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::E => {
                         self.registers.e = self.sra(self.registers.e);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::H => {
                         self.registers.h = self.sra(self.registers.h);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::L => {
                         self.registers.l = self.sra(self.registers.l);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::HL =>  {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -1148,7 +1148,7 @@ impl CPU {
                         self.registers.f.half_carry = false;
                         self.registers.f.carry = carry == 1;
                         self.bus.write_byte(HL, new_value);   
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -1156,31 +1156,31 @@ impl CPU {
                 match target {
                     DeRefR8Target::A => {
                         self.registers.a = self.sla(self.registers.a);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::B => {
                         self.registers.b = self.sla(self.registers.b);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::C => {
                         self.registers.c = self.sla(self.registers.c);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::D => {
                         self.registers.d = self.sla(self.registers.d);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::E => {
                         self.registers.e = self.sla(self.registers.e);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::H => {
                         self.registers.h = self.sla(self.registers.h);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::L => {
                         self.registers.l = self.sla(self.registers.l);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::HL => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -1193,7 +1193,7 @@ impl CPU {
                         self.registers.f.half_carry = false;
                         self.registers.f.carry = carry == 1;
                         self.bus.write_byte(HL, new_value);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -1201,31 +1201,31 @@ impl CPU {
                 match target {
                     DeRefR8Target::A => {
                         self.registers.a = self.swap(self.registers.a);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::B => {
                         self.registers.b = self.swap(self.registers.b); 
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::C => {
                         self.registers.c = self.swap(self.registers.c);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::D => {
                         self.registers.d = self.swap(self.registers.d);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::E => {
                         self.registers.e = self.swap(self.registers.e);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::H => { 
                         self.registers.h = self.swap(self.registers.h);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::L => {
                         self.registers.l = self.swap(self.registers.l);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
                     DeRefR8Target::HL => {
                         let HL: u16 = ((self.registers.h as u16) << 8) | (self.registers.l as u16);
@@ -1238,7 +1238,7 @@ impl CPU {
                         self.registers.f.half_carry = false;
                         self.registers.f.carry = false;
                         self.bus.write_byte(HL, new_value);
-                        self.pc.wrapping_add(1)
+                        self.pc.wrapping_add(2)
                     }
             //don't mind this :> just uh... something that will go away once I'm sure it's not needed
            // _ => { /* TODO: support more instructions */}
