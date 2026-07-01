@@ -123,6 +123,9 @@ enum Instruction {
     CPL,
     RLCA,
     RRCA,
+    JP(JumpTest),
+    JPHL,
+    JR(JumpTest),
 
 }
 
@@ -161,7 +164,7 @@ impl Instruction {
             0x15 => todo!(),
             0x16 => todo!(),
             0x17 => todo!(),
-            0x18 => todo!(),
+            0x18 => Some(Instruction::JR(JumpTest::Always)),
             0x19 => todo!(),
             0x1A => todo!(),
             0x1B => todo!(),
@@ -169,7 +172,7 @@ impl Instruction {
             0x1D => todo!(),
             0x1E => todo!(),
             0x1F => todo!(),
-            0x20 => todo!(),
+            0x20 => Some(Instruction::JR(JumpTest::NotZero)),
             0x21 => todo!(),
             0x22 => todo!(),
             0x23 => todo!(),
@@ -177,7 +180,7 @@ impl Instruction {
             0x25 => todo!(),
             0x26 => todo!(),
             0x27 => todo!(),
-            0x28 => todo!(), 
+            0x28 => Some(Instruction::JR(JumpTest::Zero)), 
             0x29 => todo!(),
             0x2A => todo!(),
             0x2B => todo!(),
@@ -185,7 +188,7 @@ impl Instruction {
             0x2D => todo!(),
             0x2E => todo!(),
             0x2F => Some(Instruction::CPL),
-            0x30 => todo!(),
+            0x30 => Some(Instruction::JR(JumpTest::NotCarry)),
             0x31 => todo!(),
             0x32 => todo!(),
             0x33 => todo!(),
@@ -193,7 +196,7 @@ impl Instruction {
             0x35 => todo!(),
             0x36 => todo!(),
             0x37 => todo!(),
-            0x38 => todo!(),
+            0x38 => Some(Instruction::JR(JumpTest::Carry)),
             0x39 => todo!(),
             0x3A => todo!(),
             0x3B => todo!(),
@@ -331,15 +334,15 @@ impl Instruction {
             0xBF => todo!(),
             0xC0 => todo!(),
             0xC1 => todo!(),
-            0xC2 => todo!(),
-            0xC3 => todo!(),
+            0xC2 => Some(Instruction::JP(JumpTest::NotZero)),
+            0xC3 => Some(Instruction::JP(JumpTest::Always)),
             0xC4 => todo!(),
             0xC5 => todo!(),
             0xC6 => todo!(),
             0xC7 => todo!(),
             0xC8 => todo!(),
             0xC9 => todo!(),
-            0xCA => todo!(),
+            0xCA => Some(Instruction::JP(JumpTest::Zero)),
             0xCB => todo!(),
             0xCC => todo!(),
             0xCD => todo!(),
@@ -347,7 +350,7 @@ impl Instruction {
             0xCF => todo!(),
             0xD0 => todo!(),
             0xD1 => todo!(),
-            0xD2 => todo!(),
+            0xD2 => Some(Instruction::JP(JumpTest::NotCarry)),
             0xD3 => todo!(),
             0xD4 => todo!(),
             0xD5 => todo!(),
@@ -355,7 +358,7 @@ impl Instruction {
             0xD7 => todo!(),
             0xD8 => todo!(),
             0xD9 => todo!(), 
-            0xDA => todo!(),
+            0xDA => Some(Instruction::JP(JumpTest::Carry)),
             0xDB => todo!(),
             0xDC => todo!(),
             0xDD => todo!(),
@@ -370,7 +373,7 @@ impl Instruction {
             0xE6 => todo!(),
             0xE7 => todo!(),
             0xE8 => todo!(),
-            0xE9 => todo!(),
+            0xE9 => Some(Instruction::JPHL),
             0xEA => todo!(),
             0xEB => todo!(),
             0xEC => todo!(),
@@ -673,6 +676,14 @@ enum DeRefR8Target {
     A, B, C, D, E, H, L, HL,
 }
 
+enum JumpTest {
+    NotZero,
+    Zero,
+    NotCarry,
+    Carry,
+    Always
+}
+
 impl CPU {
     fn step (&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
@@ -707,6 +718,29 @@ impl CPU {
                         /* TODO: support more targets */
                     }
                 }
+            }
+            Instruction::JR(test) => {
+                let jump_condition = match test {
+                    JumpTest::NotZero => !self.registers.f.zero,
+                    JumpTest::NotCarry => !self.registers.f.carry,
+                    JumpTest::Zero => self.registers.f.zero,
+                    JumpTest::Carry => self.registers.f.carry,
+                    JumpTest::Always => true
+                };
+                self.jump_relative(jump_condition)
+            }
+            Instruction::JPHL => {
+                ((self.registers.h as u16) << 8) | (self.registers.l as u16)
+            }
+            Instruction::JP(test) => {
+                let jump_condition = match test {
+                    JumpTest::NotZero => !self.registers.f.zero,
+                    JumpTest::NotCarry => !self.registers.f.carry,
+                    JumpTest::Zero => self.registers.f.zero,
+                    JumpTest::Carry => self.registers.f.carry,
+                    JumpTest::Always => true
+                };
+                self.jump(jump_condition)
             }
             Instruction::RRCA => {
                 self.rrca();
@@ -1248,6 +1282,23 @@ impl CPU {
                 /* TODO: support more instructions */
                 self.pc.wrapping_add(1)
             }
+        }
+    }
+    fn jump_relative(&self, should_jump: bool) -> u16 {
+        if should_jump {
+            let offset = self.bus.read_byte(self.pc + 1) as u16;
+            self.pc.wrapping_add(offset)
+        } else {
+            self.pc.wrapping_add(2)
+        }
+    }
+    fn jump(&self, should_jump: bool) -> u16 {
+        if should_jump {
+            let least_significant_byte = self.bus.read_byte(self.pc + 1) as u16;
+            let most_significant_byte = self.bus.read_byte(self.pc + 2) as u16;
+            (most_significant_byte << 8) | least_significant_byte
+        } else {
+            self.pc.wrapping_add(3)
         }
     }
     fn add(&mut self, value: u8) -> u8 {
