@@ -5,6 +5,7 @@
 struct CPU {
     registers: Registers,
     pc: u16,
+    sp: u16,
     bus: MemoryBus,
 }
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
@@ -84,7 +85,6 @@ impl std::convert::From<u8> for FlagsRegister {
     }
 }
 
-//TODO add the other register operations: de and hl
 impl Registers {
     fn get_af(&self) -> u16 {
         ((self.a as u16) << 8) | (u8::from(self.f) as u16)
@@ -100,6 +100,23 @@ impl Registers {
     fn set_bc(&mut self, value: u16) {
         self.b = ((value & 0xFF00) >> 8) as u8;
         self.c = (value & 0xFF) as u8;
+    }
+
+    fn get_de(&self) -> u16 {
+        ((self.d as u16) << 8) | (self.e as u16)
+    }
+    fn set_de(&mut self, value: u16) {
+        self.d = ((value & 0xFF00) >> 8) as u8;
+        self.e = (value & 0xFF) as u8;
+    }
+
+    fn get_hl(&self) -> u16 {
+        ((self.h as u16) << 8) | (self.l as u16)
+    }
+
+    fn set_hl(&mut self, value: u16) {
+        self.h = ((value & 0xFF00) >> 8) as u8;
+        self.l = (value & 0xFF) as u8;
     }
 }
 
@@ -126,6 +143,7 @@ enum Instruction {
     JP(JumpTest),
     JPHL,
     JR(JumpTest),
+    LD(LoadType),
 
 }
 
@@ -684,12 +702,58 @@ enum JumpTest {
     Always
 }
 
+enum LoadByteTarget {
+    A, B, C, D, E, H, L, HL
+}
+
+enum LoadByteSource {
+    A, B, C, D, E, H, L, D8, HL
+}
+
+enum LoadWordTarget {
+    BC, DE, HL, SP, A16
+}
+
+enum LoadWordSource {
+    D16, SPR8, HL, SP
+}
+
+enum LoadAFISource {
+    BC, DE, HL, HLI, HLD, A16
+}
+ 
+enum LoadIFATarget {
+    BC, DE, HL, HLI, HLD, A16
+}
+
+enum LoadAFBASource {
+    C, A8
+}
+
+enum LoadBAFATarget {
+    C, A8
+}
+
+enum LoadType {
+    Byte(LoadByteTarget, LoadByteSource),
+    Word(LoadWordTarget, LoadWordSource),
+    AFromIndirect(LoadAFISource),
+    IndirectFromA(LoadIFATarget),
+    AFromByteAddress(LoadAFBASource),
+    ByteAddressFromA(LoadBAFATarget),
+
+}
+
 impl CPU {
+     fn read_next_byte(&self) -> u8 {
+        self.bus.read_byte(self.pc.wrapping_add(1))
+    }
+
     fn step (&mut self) {
         let mut instruction_byte = self.bus.read_byte(self.pc);
         let prefixed = instruction_byte == 0xCB;
         if prefixed {
-            instruction_byte = self.bus.read_byte(self.pc + 1);
+            instruction_byte = self.bus.read_byte(self.pc.wrapping_add(1));
         }
 
         let next_pc = if let Some(instruction) = Instruction::from_byte(instruction_byte, prefixed) {
@@ -718,6 +782,185 @@ impl CPU {
                         /* TODO: support more targets */
                     }
                 }
+            }
+            Instruction::LD(load_type) => {
+                match load_type {
+                    LoadType::Byte(target, source) => {
+                        let source_value = match source {
+                            LoadByteSource::A => self.registers.a,
+                            LoadByteSource::B => self.registers.b,
+                            LoadByteSource::C => self.registers.c,
+                            LoadByteSource::D => self.registers.d,
+                            LoadByteSource::E => self.registers.e,
+                            LoadByteSource::H => self.registers.h,
+                            LoadByteSource::L => self.registers.l,
+                            LoadByteSource::HL => self.bus.read_byte(self.registers.get_hl()),
+                            LoadByteSource::D8 => self.read_next_byte()
+                        };
+                        match target {
+                            LoadByteTarget::A => self.registers.a = source_value,
+                            LoadByteTarget::B => self.registers.b = source_value,
+                            LoadByteTarget::C => self.registers.c = source_value,
+                            LoadByteTarget::D => self.registers.d = source_value,
+                            LoadByteTarget::E => self.registers.e = source_value,
+                            LoadByteTarget::H => self.registers.h = source_value,
+                            LoadByteTarget::L => self.registers.l = source_value, 
+                            LoadByteTarget::HL => self.bus.write_byte(self.registers.get_hl(), source_value)
+                        };
+                        match source {
+                            LoadByteSource::D8 => self.pc.wrapping_add(2),
+                            _                  => self.pc.wrapping_add(1),
+                        }
+                    }
+                    LoadType::Word(target, source) => {
+                        let source_value = match source {
+                            LoadWordSource::D16 => {
+                                //3
+                                let least_significant_byte = self.bus.read_byte(self.pc + 1) as u16;
+                                let most_significant_byte = self.bus.read_byte(self.pc + 2) as u16;
+                                (most_significant_byte << 8) | least_significant_byte
+                            }
+                            LoadWordSource::SPR8 => {
+                                //2
+                                let offset = self.bus.read_byte(self.pc + 1) as u16;
+                                let (new_value, did_overflow) = self.sp.overflowing_add(offset);
+                                self.registers.f.half_carry = (self.sp & 0xF) + (offset & 0xF) > 0xF;
+                                self.registers.f.carry = did_overflow;
+                                new_value
+                                
+                            }
+                            LoadWordSource::HL => {
+                                //1
+                                self.registers.get_hl()
+                            }
+                            LoadWordSource::SP => {
+                                //3
+                                self.sp
+                            }
+                        };
+                        match target {
+                            LoadWordTarget::BC => self.registers.set_bc(source_value),
+                            LoadWordTarget::DE => self.registers.set_de(source_value),
+                            LoadWordTarget::HL => self.registers.set_hl(source_value),
+                            LoadWordTarget::SP => {
+                                //might have to fix this later derp :b
+                                self.sp = source_value;
+                            }
+                            LoadWordTarget::A16 => {
+                            let least_significant_byte = self.bus.read_byte(self.pc + 1) as u16;
+                            let most_significant_byte = self.bus.read_byte(self.pc + 2) as u16;
+                            let address = (most_significant_byte << 8) | least_significant_byte;
+                            let first_byte = (source_value & 0xFF) as u8;
+                            let second_byte = (source_value >> 8) as u8;
+                            self.bus.write_byte(address, first_byte);
+                            self.bus.write_byte(address.wrapping_add(1), second_byte);
+                            }
+                        };
+                        match source {
+                            LoadWordSource::D16 => self.pc.wrapping_add(3),
+                            LoadWordSource::SPR8 => self.pc.wrapping_add(2),
+                            LoadWordSource::HL => self.pc.wrapping_add(1),
+                            LoadWordSource::SP => self.pc.wrapping_add(3),
+                        }
+                    }
+                    LoadType::AFromIndirect(source) => {
+                        match source {
+                            LoadAFISource::BC => {
+                                self.registers.a = self.bus.read_byte(self.registers.get_bc());
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadAFISource::DE => {
+                                self.registers.a = self.bus.read_byte(self.registers.get_de());
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadAFISource::HL => {
+                                self.registers.a = self.bus.read_byte(self.registers.get_hl());
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadAFISource::HLI => {
+                                self.registers.a = self.bus.read_byte(self.registers.get_hl());
+                                self.registers.set_hl(self.registers.get_hl().wrapping_add(1));
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadAFISource::HLD => {
+                                self.registers.a = self.bus.read_byte(self.registers.get_hl());
+                                self.registers.set_hl(self.registers.get_hl().wrapping_sub(1));
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadAFISource::A16 => {
+                                let least_significant_byte = self.bus.read_byte(self.pc + 1) as u16;
+                                let most_significant_byte = self.bus.read_byte(self.pc + 2) as u16;
+                                let address = (most_significant_byte << 8) | least_significant_byte;
+                                self.registers.a = self.bus.read_byte(address);
+                                self.pc.wrapping_add(3)
+
+                            }
+                        }
+                    }
+                    LoadType::IndirectFromA(target) => {
+                        match target {
+                            LoadIFATarget::BC => {
+                                self.bus.write_byte(self.registers.get_bc(), self.registers.a);
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadIFATarget::DE => {
+                                self.bus.write_byte(self.registers.get_de(), self.registers.a);
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadIFATarget::HL => {
+                                self.bus.write_byte(self.registers.get_hl(), self.registers.a);
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadIFATarget::HLI => {
+                                self.bus.write_byte(self.registers.get_hl(), self.registers.a);
+                                self.registers.set_hl(self.registers.get_hl().wrapping_add(1));
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadIFATarget::HLD => {
+                                self.bus.write_byte(self.registers.get_hl(), self.registers.a);
+                                self.registers.set_hl(self.registers.get_hl().wrapping_sub(1));
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadIFATarget::A16 => {
+                                let least_significant_byte = self.bus.read_byte(self.pc + 1) as u16;
+                                let most_significant_byte = self.bus.read_byte(self.pc + 2) as u16;
+                                let address = (most_significant_byte << 8) | least_significant_byte;
+                                self.bus.write_byte(address, self.registers.a);
+                                self.pc.wrapping_add(3)
+                            }
+                        }
+                    }
+                    LoadType::AFromByteAddress(source) => {
+                        match source {
+                            LoadAFBASource::C => {
+                                let source_byte = self.bus.read_byte(0xFF00 | (self.registers.c as u16));
+                                self.registers.a = source_byte;
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadAFBASource::A8 => {
+                                let source_byte = self.bus.read_byte(0xFF00 | (self.bus.read_byte(self.pc + 1) as u16));
+                                self.registers.a = source_byte;
+                                self.pc.wrapping_add(2)
+
+                            }
+                        }
+                    }
+                    LoadType::ByteAddressFromA(target) => {
+                        match target {
+                            LoadBAFATarget::C => {
+                                let address = (0xFF00 | (self.registers.c as u16));
+                                self.bus.write_byte(address, self.registers.a);
+                                self.pc.wrapping_add(1)
+                            }
+                            LoadBAFATarget::A8 => {
+                                let address = (0xFF00 | (self.bus.read_byte(self.pc + 1) as u16));
+                                self.bus.write_byte(address, self.registers.a);
+                                self.pc.wrapping_add(2)
+                            }
+                        }
+                    }
+                }
+
             }
             Instruction::JR(test) => {
                 let jump_condition = match test {
@@ -847,7 +1090,7 @@ impl CPU {
                             panic!("bit placement is out of bounds (high). CPU FN RES")
                         } 
                         else if bit < 0 {
-                            panic!("bit placement is out of counds (low). CPU FN RES")
+                            panic!("bit placement is out of bounds (low). CPU FN RES")
                         }
                         let mut mask = 0xFE;
                         for _i in 1.. bit {
