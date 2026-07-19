@@ -144,7 +144,8 @@ enum Instruction {
     JPHL,
     JR(JumpTest),
     LD(LoadType),
-
+    PUSH(PushPopTarget),
+    POP(PushPopTarget),
 }
 
 impl Instruction {
@@ -351,11 +352,11 @@ impl Instruction {
             0xBE => todo!(),
             0xBF => todo!(),
             0xC0 => todo!(),
-            0xC1 => todo!(),
+            0xC1 => Some(Instruction::POP(PushPopTarget::BC)),
             0xC2 => Some(Instruction::JP(JumpTest::NotZero)),
             0xC3 => Some(Instruction::JP(JumpTest::Always)),
             0xC4 => todo!(),
-            0xC5 => todo!(),
+            0xC5 => Some(Instruction::PUSH(PushPopTarget::BC)),
             0xC6 => todo!(),
             0xC7 => todo!(),
             0xC8 => todo!(),
@@ -367,11 +368,11 @@ impl Instruction {
             0xCE => todo!(),
             0xCF => todo!(),
             0xD0 => todo!(),
-            0xD1 => todo!(),
+            0xD1 => Some(Instruction::POP(PushPopTarget::DE)),
             0xD2 => Some(Instruction::JP(JumpTest::NotCarry)),
             0xD3 => todo!(),
             0xD4 => todo!(),
-            0xD5 => todo!(),
+            0xD5 => Some(Instruction::PUSH(PushPopTarget::DE)),
             0xD6 => todo!(),
             0xD7 => todo!(),
             0xD8 => todo!(),
@@ -383,11 +384,11 @@ impl Instruction {
             0xDE => todo!(),
             0xDF => todo!(),
             0xE0 => Some(Instruction::LD(LoadType::ByteAddressFromA(LoadBAFATarget::A8))),
-            0xE1 => todo!(),
+            0xE1 => Some(Instruction::POP(PushPopTarget::HL)),
             0xE2 => Some(Instruction::LD(LoadType::ByteAddressFromA(LoadBAFATarget::C))),
             0xE3 => todo!(),
             0xE4 => todo!(),
-            0xE5 => todo!(),
+            0xE5 => Some(Instruction::PUSH(PushPopTarget::HL)),
             0xE6 => todo!(),
             0xE7 => todo!(),
             0xE8 => todo!(),
@@ -399,11 +400,11 @@ impl Instruction {
             0xEE => todo!(),
             0xEF => todo!(),
             0xF0 => Some(Instruction::LD(LoadType::AFromByteAddress(LoadAFBASource::A8))),
-            0xF1 => todo!(),
+            0xF1 => Some(Instruction::POP(PushPopTarget::AF)),
             0xF2 => Some(Instruction::LD(LoadType::AFromByteAddress(LoadAFBASource::C))),
             0xF3 => todo!(),
             0xF4 => todo!(),
-            0xF5 => todo!(),
+            0xF5 => Some(Instruction::PUSH(PushPopTarget::AF)),
             0xF6 => todo!(),
             0xF7 => todo!(),
             0xF8 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::HL, LoadWordSource::SPR8))),
@@ -734,6 +735,11 @@ enum LoadBAFATarget {
     C, A8
 }
 
+enum PushPopTarget {
+    BC, DE, HL, AF
+
+}
+
 enum LoadType {
     Byte(LoadByteTarget, LoadByteSource),
     Word(LoadWordTarget, LoadWordSource),
@@ -782,6 +788,28 @@ impl CPU {
                         /* TODO: support more targets */
                     }
                 }
+            }
+            Instruction::POP(target) => {
+                let result = self.pop();
+                match target {
+                    PushPopTarget::BC => self.registers.set_bc(result),
+                    PushPopTarget::DE => self.registers.set_de(result),
+                    PushPopTarget::HL => self.registers.set_hl(result),
+                    PushPopTarget::AF => self.registers.set_af(result)
+                };
+                self.pc.wrapping_add(1)
+            }
+            Instruction::PUSH(target) => {
+                let value = match target {
+                    PushPopTarget::BC => self.registers.get_bc(),
+                    PushPopTarget::DE => self.registers.get_de(),
+                    PushPopTarget::HL => self.registers.get_hl(),
+                    PushPopTarget::AF => self.registers.get_af()
+                }
+
+                self.push(value);
+                self.pc.wrapping_add(1)
+
             }
             Instruction::LD(load_type) => {
                 match load_type {
@@ -1528,6 +1556,13 @@ impl CPU {
             }
         }
     }
+    fn push(&mut self, value: u16) {
+        self.sp = self.sp.wrapping_sub(1);
+        self.bus.write_byte(self.sp, ((value & 0xFF00) >> 8) as u8);
+        self.sp = self.sp.wrapping_sub(1);
+        self.bus.write_byte(self.sp, (value & 0xFF) as u8);
+    }
+
     fn jump_relative(&self, should_jump: bool) -> u16 {
         if should_jump {
             let offset = self.bus.read_byte(self.pc + 1) as u16;
