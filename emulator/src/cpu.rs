@@ -126,6 +126,7 @@ impl Registers {
 
 enum Instruction {
     ADD(ArithmeticTarget),
+    ADC(ArithmeticTarget),
     SLA(DeRefR8Target),
     SWAP(DeRefR8Target),
     SRA(DeRefR8Target),
@@ -287,22 +288,22 @@ impl Instruction {
             0x7D => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::A, LoadByteSource::L))),
             0x7E => Some(Instruction::LD(LoadType::AFromIndirect(LoadAFISource::HL))),
             0x7F => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::A, LoadByteSource::A))),
-            0x80 => todo!(),
-            0x81 => todo!(),
-            0x82 => todo!(),
-            0x83 => todo!(),
-            0x84 => todo!(),
-            0x85 => todo!(),
-            0x86 => todo!(),
-            0x87 => todo!(),
-            0x88 => todo!(), 
-            0x89 => todo!(),
-            0x8A => todo!(),
-            0x8B => todo!(),
-            0x8C => todo!(),
-            0x8D => todo!(),
-            0x8E => todo!(),
-            0x8F => todo!(),
+            0x80 => Some(Instruction::ADD(ArithmeticTarget::B)),
+            0x81 => Some(Instruction::ADD(ArithmeticTarget::C)),
+            0x82 => Some(Instruction::ADD(ArithmeticTarget::D)),
+            0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
+            0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
+            0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
+            0x86 => Some(Instruction::ADD(ArithmeticTarget::HL)),
+            0x87 => Some(Instruction::ADD(ArithmeticTarget::A)),
+            0x88 => Some(Instruction::ADC(ArithmeticTarget::B)), 
+            0x89 => Some(Instruction::ADC(ArithmeticTarget::C)),
+            0x8A => Some(Instruction::ADC(ArithmeticTarget::D)),
+            0x8B => Some(Instruction::ADC(ArithmeticTarget::E)),
+            0x8C => Some(Instruction::ADC(ArithmeticTarget::H)),
+            0x8D => Some(Instruction::ADC(ArithmeticTarget::L)),
+            0x8E => Some(Instruction::ADC(ArithmeticTarget::HL)),
+            0x8F => Some(Instruction::ADC(ArithmeticTarget::A)),
             0x90 => todo!(),
             0x91 => todo!(),
             0x92 => todo!(),
@@ -357,7 +358,7 @@ impl Instruction {
             0xC3 => Some(Instruction::JP(JumpTest::Always)),
             0xC4 => todo!(),
             0xC5 => Some(Instruction::PUSH(PushPopTarget::BC)),
-            0xC6 => todo!(),
+            0xC6 => Some(Instruction::ADD(ArithmeticTarget::N8)),
             0xC7 => todo!(),
             0xC8 => todo!(),
             0xC9 => todo!(),
@@ -365,7 +366,7 @@ impl Instruction {
             0xCB => todo!(),
             0xCC => todo!(),
             0xCD => todo!(),
-            0xCE => todo!(),
+            0xCE => Some(Instruction::ADC(ArithmeticTarget::N8)),
             0xCF => todo!(),
             0xD0 => todo!(),
             0xD1 => Some(Instruction::POP(PushPopTarget::DE)),
@@ -684,7 +685,7 @@ impl Instruction {
 }
 
 enum ArithmeticTarget {
-    A, B, C, D, E, H, L, HL, N8,
+    A, B, C, D, E, H, L, HL, N8
 }
 
 enum BitManTarget {
@@ -777,15 +778,118 @@ impl CPU {
         match instruction {
             Instruction::ADD(target) => {
                 match target {
+                     ArithmeticTarget::A => {
+                        let value = self.registers.a;
+                        let new_value = self.add(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
+                     }
+                     ArithmeticTarget::B => {
+                         let value = self.registers.b;
+                         let new_value = self.add(value);
+                         self.registers.a = new_value;
+                         self.pc.wrapping_add(1)
+
+                     }
                      ArithmeticTarget::C => {
                         let value = self.registers.c;
                         let new_value = self.add(value);
                         self.registers.a = new_value;
                         self.pc.wrapping_add(1)
-                    }
-                    _ => {
+                     }
+                     ArithmeticTarget::D => {
+                         let value = self.registers.d;
+                         let new_value = self.add(value);
+                         self.registers.a = new_value;
+                         self.pc.wrapping_add(1)
+                     }
+                     ArithmeticTarget::E => {
+                         let value = self.registers.e;
+                         let new_value = self.add(value);
+                         self.registers.a = new_value;
+                         self.pc.wrapping_add(1)
+                     }
+                     ArithmeticTarget::H => {
+                         let value = self.registers.h;
+                         let new_value = self.add(value);
+                         self.registers.a = new_value;
+                         self.pc.wrapping_add(1)
+                     }
+                     ArithmeticTarget::L => {
+                         let value = self.registers.l;
+                         let new_value = self.add(value);
+                         self.registers.a = new_value;
+                         self.pc.wrapping_add(1)
+                     }
+                     ArithmeticTarget::HL => {
+                         let value = self.bus.read_byte(self.registers.get_hl());
+                         let new_value = self.add(value);
+                         self.registers.a = new_value;
+                         self.pc.wrapping_add(1)
+                     }
+                     ArithmeticTarget::N8 => {
+                        let value = self.bus.read_byte(self.pc + 1);
+                        let new_value = self.add(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(2)
+                     }
+                }
+            }
+            Instruction::ADC(target) => {
+                match target {
+                    ArithmeticTarget::A => {
+                        let value = self.registers.a;
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
                         self.pc.wrapping_add(1)
-                        /* TODO: support more targets */
+                    }
+                    ArithmeticTarget::B => {
+                        let value = self.registers.b;
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
+                    }
+                    ArithmeticTarget::C => {
+                        let value = self.registers.c;
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
+                    }
+                    ArithmeticTarget::D => {
+                        let value = self.registers.d;
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
+                    }
+                    ArithmeticTarget::E => {
+                        let value = self.registers.e;
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
+                    }
+                    ArithmeticTarget::H => {
+                        let value = self.registers.h;
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
+                    }
+                    ArithmeticTarget::L => {
+                        let value = self.registers.l;
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
+                    }
+                    ArithmeticTarget::HL => {
+                        let value = self.bus.read_byte(self.registers.get_hl());
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(1)
+                    }
+                    ArithmeticTarget::N8 => {
+                        let value = self.bus.read_byte(self.pc + 1);
+                        let new_value = self.adc(value);
+                        self.registers.a = new_value;
+                        self.pc.wrapping_add(2)
                     }
                 }
             }
@@ -805,7 +909,7 @@ impl CPU {
                     PushPopTarget::DE => self.registers.get_de(),
                     PushPopTarget::HL => self.registers.get_hl(),
                     PushPopTarget::AF => self.registers.get_af()
-                }
+                };
 
                 self.push(value);
                 self.pc.wrapping_add(1)
@@ -1556,6 +1660,16 @@ impl CPU {
             }
         }
     }
+    fn pop(&mut self) -> u16 {
+        let lsb = self.bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
+
+        let msb = self.bus.read_byte(self.sp) as u16;
+        self.sp = self.sp.wrapping_add(1);
+
+        (msb << 8) | lsb
+
+    }
     fn push(&mut self, value: u16) {
         self.sp = self.sp.wrapping_sub(1);
         self.bus.write_byte(self.sp, ((value & 0xFF00) >> 8) as u8);
@@ -1580,11 +1694,21 @@ impl CPU {
             self.pc.wrapping_add(3)
         }
     }
+    fn adc(&mut self, value: u8) -> u8 {
+        let (step_value, did_overflow) = self.registers.a.overflowing_add(value);
+        let (new_value, did_overflow2) = step_value.overflowing_add(self.registers.f.carry as u8);
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract= false;
+        self.registers.f.half_carry = (((self.registers.a & 0xF) + (value & 0xF)) > 0xF) | (((self.registers.f.carry as u8) + (step_value & 0xF)) > 0xF);
+        self.registers.f.carry = did_overflow | did_overflow2;
+        new_value
+
+    }
     fn add(&mut self, value: u8) -> u8 {
         let (new_value, did_overflow) = self.registers.a.overflowing_add(value);
         self.registers.f.zero = new_value == 0;
         self.registers.f.subtract = false;
-        self.registers.f.half_carry = (self.registers.a & 0xF) + (value & 0xF) > 0xF;
+        self.registers.f.half_carry = ((self.registers.a & 0xF) + (value & 0xF)) > 0xF;
         self.registers.f.carry = did_overflow;
         new_value
     }
