@@ -125,7 +125,7 @@ impl Registers {
 //_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*
 
 enum Instruction {
-    ADD(ArithmeticTarget),
+    ADD(AddType),
     ADC(ArithmeticTarget),
     SUB(ArithmeticTarget),
     SBC(ArithmeticTarget),
@@ -133,6 +133,8 @@ enum Instruction {
     XOR(ArithmeticTarget),
     OR(ArithmeticTarget),
     CP(ArithmeticTarget),
+    INC(IncDecTarget),
+    DEC(IncDecTarget),
     SLA(DeRefR8Target),
     SWAP(DeRefR8Target),
     SRA(DeRefR8Target),
@@ -169,65 +171,65 @@ impl Instruction {
             0x00 => todo!(),
             0x01 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::BC, LoadWordSource::D16))),
             0x02 => Some(Instruction::LD(LoadType::IndirectFromA(LoadIFATarget::BC))),
-            0x03 => todo!(),
-            0x04 => todo!(),
-            0x05 => todo!(),
+            0x03 => Some(Instruction::INC(IncDecTarget::BC)),
+            0x04 => Some(Instruction::INC(IncDecTarget::B)),
+            0x05 => Some(Instruction::DEC(IncDecTarget::B)),
             0x06 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::B, LoadByteSource::D8))),
             0x07 => Some(Instruction::RLCA),
             0x08 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::A16, LoadWordSource::SP))),
-            0x09 => todo!(),
+            0x09 => Some(Instruction::ADD(AddType::Word(ArithmeticWordTarget::BC))),
             0x0A => Some(Instruction::LD(LoadType::AFromIndirect(LoadAFISource::BC))),
-            0x0B => todo!(),
-            0x0C => todo!(),
-            0x0D => todo!(),
+            0x0B => Some(Instruction::DEC(IncDecTarget::BC)),
+            0x0C => Some(Instruction::INC(IncDecTarget::C)),
+            0x0D => Some(Instruction::DEC(IncDecTarget::C)),
             0x0E => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::C, LoadByteSource::D8))),
             0x0F => Some(Instruction::RRCA),
             0x10 => todo!(),
             0x11 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::DE, LoadWordSource::D16))),
             0x12 => Some(Instruction::LD(LoadType::IndirectFromA(LoadIFATarget::DE))),
-            0x13 => todo!(),
-            0x14 => todo!(),
-            0x15 => todo!(),
+            0x13 => Some(Instruction::INC(IncDecTarget::DE)),
+            0x14 => Some(Instruction::INC(IncDecTarget::D)),
+            0x15 => Some(Instruction::DEC(IncDecTarget::D)),
             0x16 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::D, LoadByteSource::D8))),
             0x17 => todo!(),
             0x18 => Some(Instruction::JR(JumpTest::Always)),
-            0x19 => todo!(),
+            0x19 => Some(Instruction::ADD(AddType::Word(ArithmeticWordTarget::DE))),
             0x1A => Some(Instruction::LD(LoadType::AFromIndirect(LoadAFISource::DE))),
-            0x1B => todo!(),
-            0x1C => todo!(),
-            0x1D => todo!(),
+            0x1B => Some(Instruction::DEC(IncDecTarget::DE)),
+            0x1C => Some(Instruction::INC(IncDecTarget::E)),
+            0x1D => Some(Instruction::DEC(IncDecTarget::E)),
             0x1E => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::E, LoadByteSource::D8))),
             0x1F => todo!(),
             0x20 => Some(Instruction::JR(JumpTest::NotZero)),
             0x21 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::HL, LoadWordSource::D16))),
             0x22 => Some(Instruction::LD(LoadType::IndirectFromA(LoadIFATarget::HLI))),
-            0x23 => todo!(),
-            0x24 => todo!(),
-            0x25 => todo!(),
+            0x23 => Some(Instruction::INC(IncDecTarget::HL)),
+            0x24 => Some(Instruction::INC(IncDecTarget::H)),
+            0x25 => Some(Instruction::DEC(IncDecTarget::H)),
             0x26 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::H, LoadByteSource::D8))),
             0x27 => todo!(),
             0x28 => Some(Instruction::JR(JumpTest::Zero)), 
-            0x29 => todo!(),
+            0x29 => Some(Instruction::ADD(AddType::Word(ArithmeticWordTarget::HL))),
             0x2A => Some(Instruction::LD(LoadType::AFromIndirect(LoadAFISource::HLI))),
-            0x2B => todo!(),
-            0x2C => todo!(),
-            0x2D => todo!(),
+            0x2B => Some(Instruction::DEC(IncDecTarget::HL)),
+            0x2C => Some(Instruction::INC(IncDecTarget::L)),
+            0x2D => Some(Instruction::DEC(IncDecTarget::L)),
             0x2E => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::L, LoadByteSource::D8))),
             0x2F => Some(Instruction::CPL),
             0x30 => Some(Instruction::JR(JumpTest::NotCarry)),
             0x31 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::SP, LoadWordSource::D16))),
             0x32 => Some(Instruction::LD(LoadType::IndirectFromA(LoadIFATarget::HLD))),
-            0x33 => todo!(),
-            0x34 => todo!(),
-            0x35 => todo!(),
+            0x33 => Some(Instruction::INC(IncDecTarget::SP)),
+            0x34 => Some(Instruction::INC(IncDecTarget::AHL)),
+            0x35 => Some(Instruction::DEC(IncDecTarget::AHL)),
             0x36 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::HL, LoadByteSource::D8))),
             0x37 => todo!(),
             0x38 => Some(Instruction::JR(JumpTest::Carry)),
-            0x39 => todo!(),
+            0x39 => Some(Instruction::ADD(AddType::Word(ArithmeticWordTarget::SP))),
             0x3A => Some(Instruction::LD(LoadType::AFromIndirect(LoadAFISource::HLD))),
-            0x3B => todo!(),
-            0x3C => todo!(),
-            0x3D => todo!(),
+            0x3B => Some(Instruction::DEC(IncDecTarget::SP)),
+            0x3C => Some(Instruction::INC(IncDecTarget::A)),
+            0x3D => Some(Instruction::DEC(IncDecTarget::A)),
             0x3E => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::A, LoadByteSource::D8))),
             0x3F => todo!(),
             0x40 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::B, LoadByteSource::B))),
@@ -294,14 +296,14 @@ impl Instruction {
             0x7D => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::A, LoadByteSource::L))),
             0x7E => Some(Instruction::LD(LoadType::AFromIndirect(LoadAFISource::HL))),
             0x7F => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::A, LoadByteSource::A))),
-            0x80 => Some(Instruction::ADD(ArithmeticTarget::B)),
-            0x81 => Some(Instruction::ADD(ArithmeticTarget::C)),
-            0x82 => Some(Instruction::ADD(ArithmeticTarget::D)),
-            0x83 => Some(Instruction::ADD(ArithmeticTarget::E)),
-            0x84 => Some(Instruction::ADD(ArithmeticTarget::H)),
-            0x85 => Some(Instruction::ADD(ArithmeticTarget::L)),
-            0x86 => Some(Instruction::ADD(ArithmeticTarget::HL)),
-            0x87 => Some(Instruction::ADD(ArithmeticTarget::A)),
+            0x80 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::B))),
+            0x81 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::C))),
+            0x82 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::D))),
+            0x83 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::E))),
+            0x84 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::H))),
+            0x85 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::L))),
+            0x86 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::HL))),
+            0x87 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::A))),
             0x88 => Some(Instruction::ADC(ArithmeticTarget::B)), 
             0x89 => Some(Instruction::ADC(ArithmeticTarget::C)),
             0x8A => Some(Instruction::ADC(ArithmeticTarget::D)),
@@ -364,7 +366,7 @@ impl Instruction {
             0xC3 => Some(Instruction::JP(JumpTest::Always)),
             0xC4 => todo!(),
             0xC5 => Some(Instruction::PUSH(PushPopTarget::BC)),
-            0xC6 => Some(Instruction::ADD(ArithmeticTarget::N8)),
+            0xC6 => Some(Instruction::ADD(AddType::Byte(ArithmeticTarget::N8))),
             0xC7 => todo!(),
             0xC8 => todo!(),
             0xC9 => todo!(),
@@ -398,7 +400,7 @@ impl Instruction {
             0xE5 => Some(Instruction::PUSH(PushPopTarget::HL)),
             0xE6 => Some(Instruction::AND(ArithmeticTarget::N8)),
             0xE7 => todo!(),
-            0xE8 => todo!(),
+            0xE8 => Some(Instruction::ADD(AddType::Word(ArithmeticWordTarget::E8))),
             0xE9 => Some(Instruction::JPHL),
             0xEA => Some(Instruction::LD(LoadType::IndirectFromA(LoadIFATarget::A16))),
             0xEB => todo!(),
@@ -690,8 +692,16 @@ impl Instruction {
     }
 }
 
+enum IncDecTarget {
+    A, B, C, D, E, H, L, AHL, BC, DE, HL, SP
+}
+
 enum ArithmeticTarget {
     A, B, C, D, E, H, L, HL, N8
+}
+
+enum ArithmeticWordTarget {
+   BC, DE, HL, SP, E8
 }
 
 enum BitManTarget {
@@ -747,6 +757,11 @@ enum PushPopTarget {
 
 }
 
+enum AddType {
+    Byte(ArithmeticTarget),
+    Word(ArithmeticWordTarget),
+}
+
 enum LoadType {
     Byte(LoadByteTarget, LoadByteSource),
     Word(LoadWordTarget, LoadWordSource),
@@ -782,63 +797,114 @@ impl CPU {
 
     fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
-            Instruction::ADD(target) => {
-                match target {
-                     ArithmeticTarget::A => {
-                        let value = self.registers.a;
-                        let new_value = self.add(value);
-                        self.registers.a = new_value;
-                        self.pc.wrapping_add(1)
-                     }
-                     ArithmeticTarget::B => {
-                         let value = self.registers.b;
-                         let new_value = self.add(value);
-                         self.registers.a = new_value;
-                         self.pc.wrapping_add(1)
+            Instruction::ADD(add_type) => {
+                match add_type {
+                    AddType::Byte(target) => {
+                        match target {
+                            ArithmeticTarget::A => {
+                                let value = self.registers.a;
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticTarget::B => {
+                                let value = self.registers.b;
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(1)
 
-                     }
-                     ArithmeticTarget::C => {
-                        let value = self.registers.c;
-                        let new_value = self.add(value);
-                        self.registers.a = new_value;
-                        self.pc.wrapping_add(1)
-                     }
-                     ArithmeticTarget::D => {
-                         let value = self.registers.d;
-                         let new_value = self.add(value);
-                         self.registers.a = new_value;
-                         self.pc.wrapping_add(1)
-                     }
-                     ArithmeticTarget::E => {
-                         let value = self.registers.e;
-                         let new_value = self.add(value);
-                         self.registers.a = new_value;
-                         self.pc.wrapping_add(1)
-                     }
-                     ArithmeticTarget::H => {
-                         let value = self.registers.h;
-                         let new_value = self.add(value);
-                         self.registers.a = new_value;
-                         self.pc.wrapping_add(1)
-                     }
-                     ArithmeticTarget::L => {
-                         let value = self.registers.l;
-                         let new_value = self.add(value);
-                         self.registers.a = new_value;
-                         self.pc.wrapping_add(1)
-                     }
-                     ArithmeticTarget::HL => {
-                         let value = self.bus.read_byte(self.registers.get_hl());
-                         let new_value = self.add(value);
-                         self.registers.a = new_value;
-                         self.pc.wrapping_add(1)
-                     }
-                     ArithmeticTarget::N8 => {
-                        let value = self.bus.read_byte(self.pc + 1);
-                        let new_value = self.add(value);
-                        self.registers.a = new_value;
-                        self.pc.wrapping_add(2)
-                     }
+                            }
+                            ArithmeticTarget::C => {
+                                let value = self.registers.c;
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticTarget::D => {
+                                let value = self.registers.d;
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticTarget::E => {
+                                let value = self.registers.e;
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticTarget::H => {
+                                let value = self.registers.h;
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticTarget::L => {
+                                let value = self.registers.l;
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticTarget::HL => {
+                                let value = self.bus.read_byte(self.registers.get_hl());
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticTarget::N8 => {
+                                let value = self.bus.read_byte(self.pc + 1);
+                                let new_value = self.add(value);
+                                self.registers.a = new_value;
+                                self.pc.wrapping_add(2)
+                            }
+                        }
+                    }
+                    AddType::Word(target) => {
+                        match target {
+                            ArithmeticWordTarget::BC => {
+                                self.registers.f.subtract = false;
+                                self.registers.f.half_carry = ((self.registers.get_bc() & 0xFFF) + (self.registers.get_hl() & 0xFFF)) > 0xFFF;
+                                self.registers.f.carry = ((self.registers.get_bc() as u32) + (self.registers.get_hl() as u32)) > 0xFFFF;
+                                self.registers.set_hl(self.registers.get_bc().wrapping_add(self.registers.get_hl()));
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticWordTarget::DE => {
+                                self.registers.f.subtract = false;
+                                self.registers.f.half_carry = ((self.registers.get_de() & 0xFFF) + (self.registers.get_hl() & 0xFFF)) > 0xFFF;
+                                self.registers.f.carry = ((self.registers.get_de() as u32) + (self.registers.get_hl() as u32)) > 0xFFFF;
+                                self.registers.set_hl(self.registers.get_de().wrapping_add(self.registers.get_hl()));
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticWordTarget::HL => {
+                                self.registers.f.subtract = false;
+                                self.registers.f.half_carry = ((self.registers.get_hl() & 0xFFF) + (self.registers.get_hl() & 0xFFF)) > 0xFFF;
+                                self.registers.f.carry = ((self.registers.get_hl() as u32) + (self.registers.get_hl() as u32)) > 0xFFFF;
+                                self.registers.set_hl(self.registers.get_hl().wrapping_add(self.registers.get_hl()));
+                                self.pc.wrapping_add(1)
+
+                            }
+                            ArithmeticWordTarget::SP => {
+                                self.registers.f.subtract = false;
+                                self.registers.f.half_carry = ((self.sp & 0xFFF) + (self.registers.get_hl() & 0xFFF)) > 0xFFF;
+                                self.registers.f.carry = ((self.sp as u32) + (self.registers.get_hl() as u32)) > 0xFFFF;
+                                self.registers.set_hl(self.sp.wrapping_add(self.registers.get_hl()));
+                                self.pc.wrapping_add(1)
+                            }
+                            ArithmeticWordTarget::E8 => {
+                                let value = self.bus.read_byte(self.pc + 1) as i16;
+                                if (value >= 0) {
+                                    self.sp = self.sp.wrapping_add(value as u16);
+                                } else {
+                                    self.sp = self.sp.wrapping_sub(value as u16);
+                                }
+                                //flags
+                                self.registers.f.zero = false;
+                                self.registers.f.subtract = false;
+                                self.registers.f.half_carry = ((value as u16) + (self.sp & 0xF)) > 0xF;
+                                self.registers.f.carry = ((value as u16) + (self.sp & 0xFF)) > 0xFF;
+                                self.pc.wrapping_add(2)
+                            }
+                        }
+                    }
                 }
             }
             Instruction::ADC(target) => {
@@ -1238,6 +1304,118 @@ impl CPU {
                         let value = self.bus.read_byte(self.pc + 1);
                         self.cp(value);
                         self.pc.wrapping_add(2)
+                    }
+                }
+            }
+            Instruction::INC(target) => {
+                match target {
+                    IncDecTarget::A => {
+                       self.registers.a = self.inc(self.registers.a);
+                       self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::B => {
+                        self.registers.b = self.inc(self.registers.b);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::C => {
+                        self.registers.c = self.inc(self.registers.c);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::D => {
+                        self.registers.d = self.inc(self.registers.d);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::E => {
+                        self.registers.e = self.inc(self.registers.e);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::H => {
+                        self.registers.h = self.inc(self.registers.h);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::L => {
+                        self.registers.l = self.inc(self.registers.l);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::AHL => {
+                        let value = self.inc(self.bus.read_byte(self.registers.get_hl()));
+                        self.bus.write_byte(self.registers.get_hl(), value);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::BC => {
+                        let value = (self.registers.get_bc()).wrapping_add(1);
+                        self.registers.set_bc(value);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::DE => {
+                        let value = (self.registers.get_de()).wrapping_add(1);
+                        self.registers.set_de(value);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::HL => {
+                        let value = (self.registers.get_hl()).wrapping_add(1);
+                        self.registers.set_hl(value);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::SP => {
+                        self.sp = self.sp.wrapping_add(1);
+                        self.pc.wrapping_add(1)
+                    }
+                }
+            }
+            Instruction::DEC(target) => {
+                match target {
+                    IncDecTarget::A => {
+                        self.registers.a = self.dec(self.registers.a);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::B => {
+                        self.registers.b = self.dec(self.registers.b);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::C => {
+                        self.registers.c = self.dec(self.registers.c);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::D => {
+                        self.registers.d = self.dec(self.registers.d);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::E => {
+                        self.registers.e = self.dec(self.registers.e);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::H => {
+                        self.registers.h = self.dec(self.registers.h);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::L => {
+                        self.registers.l = self.dec(self.registers.l);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::AHL => {
+                        let value = self.dec(self.bus.read_byte(self.registers.get_hl()));
+                        self.bus.write_byte(self.registers.get_hl(), value);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::BC => {
+                        let value = (self.registers.get_bc()).wrapping_sub(1);
+                        self.registers.set_bc(value);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::DE => {
+                        let value = (self.registers.get_de()).wrapping_sub(1);
+                        self.registers.set_de(value);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::HL => {
+                        let value = (self.registers.get_hl()).wrapping_sub(1);
+                        self.registers.set_hl(value);
+                        self.pc.wrapping_add(1)
+                    }
+                    IncDecTarget::SP => {
+                        self.sp = self.sp.wrapping_sub(1);
+                        self.pc.wrapping_add(1)
                     }
                 }
             }
@@ -2027,8 +2205,12 @@ impl CPU {
 
     fn jump_relative(&self, should_jump: bool) -> u16 {
         if should_jump {
-            let offset = self.bus.read_byte(self.pc + 1) as u16;
-            self.pc.wrapping_add(offset)
+            let offset = self.bus.read_byte(self.pc + 1) as i16;
+            if (offset >= 0) {
+                self.pc.wrapping_add(offset as u16)
+            } else {
+                self.pc.wrapping_sub(offset as u16)
+            }
         } else {
             self.pc.wrapping_add(2)
         }
@@ -2041,6 +2223,22 @@ impl CPU {
         } else {
             self.pc.wrapping_add(3)
         }
+    }
+    fn inc(&mut self, value: u8) -> u8 {
+        let new_value = value.wrapping_add(1);
+        //update flags
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = (value & 0xF) == 0xF;
+        new_value
+    }
+    fn dec(&mut self, value: u8) -> u8 {
+        let new_value = value.wrapping_sub(1);
+        //update flags
+        self.registers.f.zero = new_value == 0;
+        self.registers.f.subtract = true;
+        self.registers.f.half_carry = (value & 0xF) == 0x0;
+        new_value
     }
     fn cp(&mut self, value: u8) {
         let (new_value, did_overflow) = self.registers.a.overflowing_sub(value);
