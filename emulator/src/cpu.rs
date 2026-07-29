@@ -149,6 +149,10 @@ enum Instruction {
     CPL,
     RLCA,
     RRCA,
+    CCF,
+    SCF,
+    RRA,
+    RLA,
     JP(JumpTest),
     JPHL,
     JR(JumpTest),
@@ -191,7 +195,7 @@ impl Instruction {
             0x14 => Some(Instruction::INC(IncDecTarget::D)),
             0x15 => Some(Instruction::DEC(IncDecTarget::D)),
             0x16 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::D, LoadByteSource::D8))),
-            0x17 => todo!(),
+            0x17 => Some(Instruction::RLA),
             0x18 => Some(Instruction::JR(JumpTest::Always)),
             0x19 => Some(Instruction::ADD(AddType::Word(ArithmeticWordTarget::DE))),
             0x1A => Some(Instruction::LD(LoadType::AFromIndirect(LoadAFISource::DE))),
@@ -199,7 +203,7 @@ impl Instruction {
             0x1C => Some(Instruction::INC(IncDecTarget::E)),
             0x1D => Some(Instruction::DEC(IncDecTarget::E)),
             0x1E => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::E, LoadByteSource::D8))),
-            0x1F => todo!(),
+            0x1F => Some(Instruction::RRA),
             0x20 => Some(Instruction::JR(JumpTest::NotZero)),
             0x21 => Some(Instruction::LD(LoadType::Word(LoadWordTarget::HL, LoadWordSource::D16))),
             0x22 => Some(Instruction::LD(LoadType::IndirectFromA(LoadIFATarget::HLI))),
@@ -223,7 +227,7 @@ impl Instruction {
             0x34 => Some(Instruction::INC(IncDecTarget::AHL)),
             0x35 => Some(Instruction::DEC(IncDecTarget::AHL)),
             0x36 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::HL, LoadByteSource::D8))),
-            0x37 => todo!(),
+            0x37 => Some(Instruction::SCF),
             0x38 => Some(Instruction::JR(JumpTest::Carry)),
             0x39 => Some(Instruction::ADD(AddType::Word(ArithmeticWordTarget::SP))),
             0x3A => Some(Instruction::LD(LoadType::AFromIndirect(LoadAFISource::HLD))),
@@ -231,7 +235,7 @@ impl Instruction {
             0x3C => Some(Instruction::INC(IncDecTarget::A)),
             0x3D => Some(Instruction::DEC(IncDecTarget::A)),
             0x3E => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::A, LoadByteSource::D8))),
-            0x3F => todo!(),
+            0x3F => Some(Instruction::CCF),
             0x40 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::B, LoadByteSource::B))),
             0x41 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::B, LoadByteSource::C))),
             0x42 => Some(Instruction::LD(LoadType::Byte(LoadByteTarget::B, LoadByteSource::D))),
@@ -797,6 +801,18 @@ impl CPU {
 
     fn execute(&mut self, instruction: Instruction) -> u16 {
         match instruction {
+            Instruction::CCF => {
+                self.registers.f.subtract = false;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = !self.registers.f.carry;
+                self.pc.wrapping_add(1)
+            }
+            Instruction::SCF => {
+                self.registers.f.subtract = false;
+                self.registers.f.half_carry = false;
+                self.registers.f.carry = true;
+                self.pc.wrapping_add(1)
+            }
             Instruction::ADD(add_type) => {
                 match add_type {
                     AddType::Byte(target) => {
@@ -1656,6 +1672,14 @@ impl CPU {
                 self.cpl();
                 self.pc.wrapping_add(1)
             }
+            Instruction::RRA => {
+                self.registers.a = self.rra();
+                self.pc.wrapping_add(1)
+            }
+            Instruction::RLA => {
+                self.registers.a = self.rla();
+                self.pc.wrapping_add(1)
+            }
             Instruction::BIT(target) => {
                 match target{
                     //fix
@@ -2039,7 +2063,6 @@ impl CPU {
                         self.pc.wrapping_add(2)
                     }
 
-
                 }
             }
             Instruction::SRA(target) => {
@@ -2351,7 +2374,6 @@ impl CPU {
         self.registers.f.carry = carry == 1;
         new_value
     }
-
     fn rlc(&mut self, value: u8) -> u8{
         let carry = value & 0x80;
         let new_value = (value << 1) | carry;
@@ -2395,6 +2417,30 @@ impl CPU {
         self.registers.f.subtract = false;
         self.registers.f.half_carry = false;
         self.registers.f.carry = carry == 1;
+        new_value
+    }
+
+    fn rla(&mut self) -> u8 {
+        let carry = self.registers.a & 0x80;
+        let carry_flag: u8 = self.registers.f.carry as u8;
+        let new_value = (self.registers.a << 1) | carry_flag;
+        //update flags
+        self.registers.f.zero = false;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 0x80;
+        new_value
+    }
+    
+    fn rra(&mut self) -> u8 {
+        let carry = self.registers.a & 0x01;
+        let carry_flag: u8 = (self.registers.f.carry as u8) << 7;
+        let new_value = (self.registers.a >> 1) | carry_flag;
+        //update flags
+        self.registers.f.zero = false;
+        self.registers.f.subtract = false;
+        self.registers.f.half_carry = false;
+        self.registers.f.carry = carry == 0x01;
         new_value
     }
 
